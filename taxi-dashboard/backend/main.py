@@ -82,60 +82,7 @@ def driver_revenue(tariff: str = "All"):
 
     return rows
     
-@app.get("/tariff-revenue")
-def tariff_revenue():
 
-    query = """
-        SELECT
-            ta.description AS tariff,
-            SUM(t.price) AS revenue,
-            COUNT(*) AS trips
-        FROM trips t
-        JOIN tariffs ta ON ta.tariff_id = t.tariff_id
-        WHERE t.status = 'finished'
-        GROUP BY ta.description
-        ORDER BY revenue DESC;
-    """
-
-    with engine.connect() as conn:
-        result = conn.execute(text(query))
-        return [dict(r._mapping) for r in result]
-
-@app.get("/tariffs")
-def tariffs():
-
-    query = """
-        SELECT
-            ta.description,
-            COUNT(*) as trips
-        FROM trips t
-        JOIN tariffs ta
-        ON ta.tariff_id=t.tariff_id
-        GROUP BY ta.description
-    """
-
-    with engine.connect() as conn:
-        result = conn.execute(text(query))
-        rows = [dict(r._mapping) for r in result]
-
-    return rows
-
-@app.get("/drivers")
-def drivers():
-
-    query = """
-        SELECT
-            name,
-            rating
-        FROM drivers
-        LIMIT 10
-    """
-
-    with engine.connect() as conn:
-        result = conn.execute(text(query))
-        rows = [dict(r._mapping) for r in result]
-
-    return rows
 
 @app.get("/kpi")
 def kpi(tariff: str = "All"):
@@ -191,54 +138,6 @@ def hourly(tariff: str = "All"):
         result = conn.execute(text(query), {"tariff": tariff})
         return [dict(r._mapping) for r in result]
 
-@app.get("/price-boxplot")
-def price_boxplot(tariff: str = "All"):
-
-    query = """
-        SELECT
-            ta.description,
-            t.price
-        FROM trips t
-        JOIN tariffs ta
-        ON ta.tariff_id = t.tariff_id
-        WHERE t.status='finished';
-    """
-    if tariff != "All":
-        query += " AND ta.description = :tariff "
-
-    with engine.connect() as conn:
-        result = conn.execute(text(query))
-        rows = [dict(r._mapping) for r in result]
-
-    return rows
-
-@app.get("/top-drivers")
-def top_drivers(tariff: str = "All"):
-
-    query = """
-        SELECT
-            d.name,
-            COUNT(*) AS trips,
-            SUM(t.price) AS revenue,
-            AVG(d.rating) AS rating
-        FROM drivers d
-        JOIN trips t ON d.driver_id = t.driver_id
-        JOIN tariffs ta ON ta.tariff_id = t.tariff_id
-        WHERE t.status = 'finished'
-    """
-
-    if tariff != "All":
-        query += " AND ta.description = :tariff "
-
-    query += """
-        GROUP BY d.name
-        ORDER BY revenue DESC
-        LIMIT 10;
-    """
-
-    with engine.connect() as conn:
-        result = conn.execute(text(query), {"tariff": tariff})
-        return [dict(r._mapping) for r in result]
 
 @app.get("/heatmap")
 def heatmap(tariff: str = "All"):
@@ -278,30 +177,6 @@ def trip_map():
         FROM trips
         WHERE pickup_lat IS NOT NULL
         LIMIT 100;
-    """
-
-    with engine.connect() as conn:
-        result = conn.execute(text(query))
-        rows = [dict(r._mapping) for r in result]
-
-    return rows
-
-@app.get("/pareto")
-def pareto():
-
-    query = """
-        SELECT
-            d.name,
-            ta.description AS tariff,
-            SUM(t.price) AS revenue
-        FROM trips t
-        JOIN drivers d
-            ON d.driver_id = t.driver_id
-        JOIN tariffs ta
-            ON ta.tariff_id = t.tariff_id
-        WHERE t.status = 'finished'
-        GROUP BY d.name, ta.description
-        ORDER BY revenue DESC;
     """
 
     with engine.connect() as conn:
